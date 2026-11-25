@@ -1,185 +1,130 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Notion D-Day Counter</title>
-<style>
-  /* 폰트는 Nunito 하나로 깔끔하게 통일! */
-  @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap');
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Abril+Fatface&family=Nunito:wght@700;900&display=swap" rel="stylesheet">
+    <title>D-Day Counter</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
 
-  :root {
-    --bg-color: #ffffff;        /* 위젯 기본 배경색 */
-    --card-radius: 20px;       /* 모서리 라운딩 */
-    --title-color: #573D2A;     /* 영문 타이틀 색상 */
-    --count-color: #C2855D;     /* 숫자 색상 */
-    --sub-color: #8C6A51;       /* DAYS 문구 색상 */
-  }
+        html, body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden !important;
+            width: 100%;
+            height: 100%;
+            background-color: transparent;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        #timer {
+            position: relative;
+            overflow: hidden; /* 블러 처리된 배경이 둥근 모서리 밖으로 삐져나오지 않게 고정 */
+            border-radius: 20px;
+            width: 380px;
+            max-width: 95vw;
+            height: 140px;
+            text-align: center;
+            display: flex;
+            justify-content: space-evenly;
+            align-items: center;
+            padding: 10px;
+            box-shadow: none !important;
+        }
 
-  * { 
-    box-sizing: border-box; 
-    /* 텍스트 드래그(파란 블록) 방지 */
-    -webkit-user-select: none;
-    -moz-user-select: none;
-    -ms-user-select: none;
-    user-select: none;
-  }
+        /* 배경 이미지만 은은하게 블러 처리하는 레이어 */
+        #timer::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-image: url("https://i.pinimg.com/564x/93/bf/8f/93bf8fa0999583b6324b1754054fa89a.jpg");
+            background-size: cover;
+            background-position: center;
+            filter: blur(4px); /* ★ 흐림 정도 조절 (더 흐리게: 6px, 덜 흐리게: 2px) */
+            transform: scale(1.08); /* 블러 시 가장자리 하얗게 뜨는 현상 방지 */
+            z-index: 0;
+        }
 
-  /* 1. 불필요한 여백 및 스크롤바 100% 제거 */
-  html, body {
-    margin: 0; 
-    padding: 0;
-    overflow: hidden !important;
-    width: 100%;
-    height: 100%;
-    font-family: 'Nunito', sans-serif; /* 단일 폰트 적용 */
-    background-color: transparent; 
-    display: flex;
-    justify-content: center;
-    align-items: center;
-  }
+        /* 일, 시, 분, 초 블록 스타일 (갈색 글자) */
+        .time-block {
+            position: relative;
+            z-index: 1; /* 블러된 배경 위로 올리기 */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 75px;
+            font-family: 'Nunito', sans-serif;
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: 2.5px;
+            text-transform: uppercase;
+            color: #6B4423; /* 따뜻한 미디엄 브라운 */
+            text-shadow: 0px 0px 8px rgba(255, 255, 255, 0.9), 0px 0px 3px rgba(255, 255, 255, 0.9); 
+        }
 
-  /* 2. 메인 위젯 카드 (하단 그림자 및 사방 여백 없음) */
-  #dday-card {
-    position: relative;
-    width: 320px;            /* 가로 크기 */
-    height: 130px;           /* 세로 크기 */
-    background-color: var(--bg-color);
-    
-    /* 배경 이미지 관련 설정 */
-    background-size: cover;
-    background-position: center;
-    background-repeat: no-repeat;
-    
-    border-radius: var(--card-radius);
-    box-shadow: none !important; /* 그림자 완전 제거 */
-    
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    padding: 15px;
-    text-align: center;
-  }
-
-  /* 배경 오버레이 (이미지 넣었을 때 자동 활성화) */
-  #dday-card::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0; bottom: 0;
-    border-radius: var(--card-radius);
-    background: rgba(0, 0, 0, 0.25); 
-    z-index: 1;
-    display: var(--overlay-display, none);
-  }
-
-  .content-box {
-    position: relative;
-    z-index: 2;
-  }
-
-  /* 1. 영문 타이틀 (입덕 / 재입덕) */
-  .title {
-    font-size: 13px;
-    font-weight: 800;
-    letter-spacing: 1.5px;
-    text-transform: uppercase;
-    color: var(--title-color);
-    margin-bottom: 2px;
-  }
-
-  /* 2. D+ 없이 숫자만 표시 */
-  .count-days {
-    font-size: 42px;
-    font-weight: 900;
-    line-height: 1;
-    color: var(--count-color);
-    letter-spacing: -1px;
-    margin: 4px 0;
-  }
-
-  /* 3. 하단 DAYS 문구 */
-  .sub-date {
-    font-size: 11px;
-    font-weight: 800;
-    letter-spacing: 2px;
-    color: var(--sub-color);
-    opacity: 0.8;
-  }
-</style>
+        /* 숫자 스타일 (진한 갈색 글자) */
+        .numbers {
+            font-family: 'Abril Fatface', cursive;
+            letter-spacing: -0.03em;
+            color: #4E2E18; /* 깊이감 있는 다크 브라운 */
+            font-size: 40px;
+            line-height: 1;
+            margin-bottom: 5px;
+            text-shadow: 0px 0px 10px rgba(255, 255, 255, 0.95), 0px 0px 4px rgba(255, 255, 255, 0.95);
+        }
+    </style>
 </head>
 <body>
-
-<div id="dday-card">
-  <div class="content-box">
-    <div class="title" id="dday-title">FALLING AGAIN</div>
-    <div class="count-days" id="dday-count">0</div>
-    <div class="sub-date" id="dday-sub-text">DAYS</div>
-  </div>
+    
+<div id="timer">
+    <div class="time-block"> 
+        <div id="days" class="numbers">0</div>days
+    </div> 
+    <div class="time-block"> 
+        <div id="hours" class="numbers">0</div>hours
+    </div> 
+    <div class="time-block"> 
+        <div id="minutes" class="numbers">0</div>minutes
+    </div> 
+    <div class="time-block"> 
+        <div id="seconds" class="numbers">0</div>seconds
+    </div> 
 </div>
 
 <script>
-  // ==========================================
-  // ⚙️ [위젯 설정하기]
-  // ==========================================
-  
-  const CONFIG = {
-    // 1. 기준 날짜 (YYYY-MM-DD)
-    startDate: "2024-01-01",
+// 2025년 11월 23일 기준
+const myDate = new Date('Nov 23, 2025 00:00:00');
 
-    // 2. 영문 타이틀 설정 
-    // 추천 옵션:
-    // - "FALLING AGAIN" (다시 빠져든 / 재입덕)
-    // - "RE-STAN" (재입덕)
-    // - "FALLING FOR YOU" (입덕)
-    // - "WITH YOU" (함께한 날)
-    title: "FALLING AGAIN",
+let timer = setInterval(function() {
+    const today = new Date().getTime();
+    const diff = today - myDate.getTime();
 
-    // 3. 하단 문구
-    subText: "DAYS",
+    let days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    let hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    let minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    let seconds = Math.floor((diff % (1000 * 60)) / 1000);
 
-    // 4. 배경 이미지 주소 (필요 시 따옴표 안에 URL 입력)
-    bgImageUrl: "" 
-  };
-
-  // ==========================================
-  // 🚀 자동 계산 로직
-  // ==========================================
-  function calculateDDay() {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    const targetDate = new Date(CONFIG.startDate);
-    targetDate.setHours(0, 0, 0, 0);
-
-    const diffTime = today.getTime() - targetDate.getTime();
-    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-
-    const titleEl = document.getElementById("dday-title");
-    const countEl = document.getElementById("dday-count");
-    const subTextEl = document.getElementById("dday-sub-text");
-    const cardEl = document.getElementById("dday-card");
-
-    titleEl.innerText = CONFIG.title;
-    subTextEl.innerText = CONFIG.subText;
-
-    // D+ 없이 순수 일수만 계산 (입덕 당일 = 1일)
-    const count = diffDays >= 0 ? diffDays + 1 : 0;
-    countEl.innerText = count;
-
-    // 배경 이미지 설정 시 처리
-    if (CONFIG.bgImageUrl && CONFIG.bgImageUrl.trim() !== "") {
-      cardEl.style.backgroundImage = `url('${CONFIG.bgImageUrl}')`;
-      cardEl.style.setProperty('--overlay-display', 'block');
-      
-      document.documentElement.style.setProperty('--title-color', '#ffffff');
-      document.documentElement.style.setProperty('--count-color', '#ffffff');
-      document.documentElement.style.setProperty('--sub-color', '#e0e0e0');
+    if (diff < 0) {
+        days = 0; hours = 0; minutes = 0; seconds = 0;
     }
-  }
 
-  calculateDDay();
+    document.getElementById("days").innerText = days;
+    document.getElementById("hours").innerText = hours;
+    document.getElementById("minutes").innerText = minutes;
+    document.getElementById("seconds").innerText = seconds;
+}, 1000);
 </script>
-
 </body>
 </html>
